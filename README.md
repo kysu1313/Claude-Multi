@@ -2,6 +2,8 @@
 
 Multi-session memory sharing for Claude Code. Run multiple Claude Code sessions and let them share what they learn!
 
+**Cross-platform:** Works on Windows, macOS, and Linux!
+
 ## Features
 
 - 🔄 **Automatic Memory Sync** - Sessions share learnings automatically
@@ -9,35 +11,81 @@ Multi-session memory sharing for Claude Code. Run multiple Claude Code sessions 
 - 🔍 **Session History** - Track what each session learned over time
 - ⚙️ **Configurable** - Control when and how syncing happens
 - 🚀 **Easy to Use** - Simple CLI interface
+- 🌍 **Cross-Platform** - Windows, macOS, and Linux support
 
 ## Installation
 
-```bash
-# Navigate to the project directory
-cd C:\Users\ksups\PROGRAMS\python\claude-multi
+### Windows
 
-# Install in development mode
+```bash
+# Clone the repository
+git clone https://github.com/kysu1313/Claude-Multi.git
+cd Claude-Multi
+
+# Install
 pip install -e .
+
+# Initialize
+python -m claude_multi.cli init
 ```
+
+See `setup-alias.md` for Windows-specific setup.
+
+### macOS / Linux
+
+```bash
+# Clone the repository
+git clone https://github.com/kysu1313/Claude-Multi.git
+cd Claude-Multi
+
+# Quick install with script
+chmod +x install.sh
+./install.sh
+```
+
+Or manual installation:
+```bash
+pip3 install -e .
+python3 -m claude_multi.cli init
+```
+
+See `UNIX-SETUP.md` for detailed Unix setup instructions.
 
 ## Quick Start
 
+### Windows
 ```bash
-# Initialize Claude Multi
-claude-multi init
+# Start a session
+python -m claude_multi.cli start .
 
-# Start a session (from any project directory)
-claude-multi start /path/to/your/project
+# Or use the batch wrapper
+.\run.bat start .
 
-# Or start from current directory
-cd /path/to/your/project
+# View status
+python -m claude_multi.cli status
+```
+
+### macOS / Linux
+```bash
+# Start a session
+python3 -m claude_multi.cli start .
+
+# Or use the shell wrapper
+./run.sh start .
+
+# Or install globally and use directly
+sudo cp run.sh /usr/local/bin/claude-multi
 claude-multi start .
+```
 
+### All Platforms
+```bash
 # View shared memory status
-claude-multi status
+python -m claude_multi.cli status  # Windows
+python3 -m claude_multi.cli status  # Unix
 
 # List all sessions
-claude-multi sessions
+python -m claude_multi.cli sessions
 ```
 
 ## How It Works

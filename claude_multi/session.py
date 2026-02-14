@@ -2,6 +2,7 @@
 
 import subprocess
 import os
+import sys
 from pathlib import Path
 from typing import Optional
 import time
@@ -18,25 +19,26 @@ class SessionManager:
         r"""Get the Claude Code project memory path for a given project directory.
 
         Claude Code creates project directories based on the working directory path.
-        For example: C:\Users\user\PROGRAMS -> C--Users-user-PROGRAMS
+        Examples:
+        - Windows: C:\Users\user\PROGRAMS -> C--Users-user-PROGRAMS
+        - macOS: /Users/user/projects -> Users-user-projects
+        - Linux: /home/user/projects -> home-user-projects
         """
         # Normalize the path
         abs_path = project_path.resolve()
-
-        # Convert path to Claude's format (replace : and \ with -)
-        # Windows: C:\Users\user\PROGRAMS -> C--Users-user-PROGRAMS
-        # Unix: /home/user/projects -> -home-user-projects
         path_str = str(abs_path)
 
-        # Replace drive letter colon
-        if ':' in path_str:
-            path_str = path_str.replace(':', '-')
-
-        # Replace path separators with dashes
-        path_str = path_str.replace('\\', '-').replace('/', '-')
-
-        # Remove leading dash if present
-        path_str = path_str.lstrip('-')
+        # Platform-specific path handling
+        if sys.platform == 'win32':
+            # Windows: Replace drive letter colon and backslashes
+            # C:\Users\user\PROGRAMS -> C--Users-user-PROGRAMS
+            path_str = path_str.replace(':', '-').replace('\\', '-')
+            path_str = path_str.lstrip('-')
+        else:
+            # Unix (macOS/Linux): Remove leading slash and replace remaining slashes
+            # /Users/user/projects -> Users-user-projects
+            # /home/user/projects -> home-user-projects
+            path_str = path_str.lstrip('/').replace('/', '-')
 
         return self.config.claude_projects_dir / path_str
 
@@ -81,11 +83,18 @@ class SessionManager:
 
         try:
             # Run Claude Code interactively
-            result = subprocess.run(
-                ["claude"],
-                cwd=str(project_path),
-                shell=True
-            )
+            # Use shell=True on Windows, False on Unix for better compatibility
+            if sys.platform == 'win32':
+                result = subprocess.run(
+                    ["claude"],
+                    cwd=str(project_path),
+                    shell=True
+                )
+            else:
+                result = subprocess.run(
+                    ["claude"],
+                    cwd=str(project_path)
+                )
 
             print("\n" + "="*60)
             print("Claude Code session ended")
