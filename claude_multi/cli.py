@@ -20,7 +20,8 @@ def cli():
 @cli.command()
 @click.argument('project_path', type=click.Path(exists=True), default='.')
 @click.option('--name', '-n', help='Session name (defaults to project directory name)')
-def start(project_path, name):
+@click.option('--instructions', '-i', multiple=True, help='Additional CLAUDE.md files to inject (can specify multiple)')
+def start(project_path, name, instructions):
     """Start a Claude Code session with shared memory.
 
     PROJECT_PATH: Path to the project directory (defaults to current directory)
@@ -28,13 +29,16 @@ def start(project_path, name):
     Example:
         claude-multi start /path/to/project
         claude-multi start . --name my-session
+        claude-multi start . --instructions ~/work-instructions.md
+        claude-multi start . -i ~/common.md -i ~/gitea.md
     """
     config = Config()
     memory = MemoryManager(config)
     session = SessionManager(config, memory)
 
     project_path = Path(project_path).resolve()
-    session.start_session(project_path, name)
+    instruction_list = list(instructions) if instructions else None
+    session.start_session(project_path, name, instruction_list)
 
 
 @cli.command()
@@ -119,16 +123,42 @@ def status():
 @cli.command()
 @click.option('--key', '-k', help='Configuration key to view/set')
 @click.option('--value', '-v', help='Value to set (if key is provided)')
-def config(key, value):
+@click.option('--add-instructions', '-a', help='Add a CLAUDE.md file to default instruction files')
+@click.option('--remove-instructions', '-r', help='Remove a CLAUDE.md file from default instruction files')
+def config(key, value, add_instructions, remove_instructions):
     """View or modify configuration settings.
 
     Example:
         claude-multi config
         claude-multi config --key auto_sync --value false
+        claude-multi config --add-instructions ~/my-instructions.md
+        claude-multi config --remove-instructions ~/my-instructions.md
     """
     cfg = Config()
 
-    if key and value:
+    if add_instructions:
+        # Add instruction file to config
+        instruction_files = cfg.get("instruction_files", [])
+        abs_path = str(Path(add_instructions).expanduser().resolve())
+        if abs_path not in instruction_files:
+            instruction_files.append(abs_path)
+            cfg.set("instruction_files", instruction_files)
+            click.echo(f"[OK] Added instruction file: {abs_path}")
+        else:
+            click.echo(f"[!] Instruction file already in list: {abs_path}")
+
+    elif remove_instructions:
+        # Remove instruction file from config
+        instruction_files = cfg.get("instruction_files", [])
+        abs_path = str(Path(remove_instructions).expanduser().resolve())
+        if abs_path in instruction_files:
+            instruction_files.remove(abs_path)
+            cfg.set("instruction_files", instruction_files)
+            click.echo(f"[OK] Removed instruction file: {abs_path}")
+        else:
+            click.echo(f"[!] Instruction file not in list: {abs_path}")
+
+    elif key and value:
         # Set configuration
         # Convert string boolean values
         if value.lower() in ('true', 'false'):
@@ -149,10 +179,19 @@ def config(key, value):
         click.echo("\n=== Configuration ===\n")
         click.echo(f"  Config directory: {cfg.config_dir}")
         click.echo(f"  Shared memory: {cfg.shared_memory_dir}")
+        click.echo(f"  Shared CLAUDE.md: {cfg.shared_claude_md}")
         click.echo("\n  Settings:")
 
         for k, v in cfg.settings.items():
-            click.echo(f"    {k}: {v}")
+            if k == "instruction_files" and isinstance(v, list):
+                click.echo(f"    {k}:")
+                if v:
+                    for file_path in v:
+                        click.echo(f"      - {file_path}")
+                else:
+                    click.echo(f"      (none)")
+            else:
+                click.echo(f"    {k}: {v}")
 
         click.echo()
 
@@ -179,6 +218,24 @@ def init():
             f.write("- Organize knowledge by topic in separate .md files\n\n")
 
         click.echo(f"\n[OK] Created default MEMORY.md")
+
+    # Create a default CLAUDE.md with instructions
+    shared_claude_file = config.shared_claude_md
+    if not shared_claude_file.exists():
+        with open(shared_claude_file, 'w', encoding='utf-8') as f:
+            f.write("# Shared Claude Code Instructions\n\n")
+            f.write("These instructions are automatically injected into every session.\n\n")
+            f.write("## Example Instructions\n\n")
+            f.write("Add your common instructions here. For example:\n\n")
+            f.write("- Use the `tea` CLI tool to interact with Gitea\n")
+            f.write("- Always run tests before committing\n")
+            f.write("- Follow the project's code style guide\n\n")
+            f.write("## Tips\n\n")
+            f.write("- Edit this file at: ~/.claude-multi/shared/CLAUDE.md\n")
+            f.write("- Add project-specific CLAUDE.md files with --instructions flag\n")
+            f.write("- Configure default instruction files with: claude-multi config --add-instructions <file>\n\n")
+
+        click.echo(f"[OK] Created default CLAUDE.md")
 
     click.echo("\n[OK] Claude Multi initialized successfully!")
     click.echo("\nNext steps:")

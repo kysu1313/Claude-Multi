@@ -14,6 +14,7 @@ class Config:
         self.shared_memory_dir = self.config_dir / "shared"
         self.sessions_dir = self.config_dir / "sessions"
         self.config_file = self.config_dir / "config.json"
+        self.shared_claude_md = self.shared_memory_dir / "CLAUDE.md"
 
         self.claude_dir = Path.home() / ".claude"
         self.claude_projects_dir = self.claude_dir / "projects"
@@ -37,7 +38,9 @@ class Config:
                 "auto_sync": True,
                 "sync_on_start": True,
                 "sync_on_end": True,
-                "watch_interval": 30  # seconds
+                "watch_interval": 30,  # seconds
+                "inject_instructions": True,  # Inject CLAUDE.md before sessions
+                "instruction_files": []  # Additional CLAUDE.md files to include
             }
             self._save_config()
 
